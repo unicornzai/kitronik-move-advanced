@@ -24,10 +24,14 @@ function iconDown (strength: number) {
     iconDirection(-1, 2, 0, 2, 1)
 }
 function moveRobot (throttle: number) {
-    if (throttle > 0) {
-        Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, throttle / 13)
-    } else {
-        Kitronik_Move_Motor.stop()
+    if (isRobot) {
+        if (throttle > 0) {
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, throttle / 13)
+            basic.showIcon(IconNames.Heart)
+        } else {
+            basic.showIcon(IconNames.No)
+            Kitronik_Move_Motor.stop()
+        }
     }
 }
 function iconLeft (strength: number) {
@@ -39,10 +43,8 @@ function iconUp (strength: number) {
     iconDirection(-1, 2, 4, 2, 3)
 }
 radio.onReceivedValue(function (name, value) {
-    if (name == "accX") {
+    if (name == "accY") {
         throttle = value
-    } else if (name == "accY") {
-    	
     }
 })
 function iconRight (strength: number) {
@@ -70,26 +72,26 @@ function iconDirection (strength: number, x1: number, y1: number, x2: number, y2
         led.plotBrightness(x1, y1, 255)
         led.plotBrightness(x2, y2, 255)
     } else if (Math.abs(strength) > 750) {
-        led.plotBrightness(x1, y1, 175)
-        led.plotBrightness(x2, y2, 175)
-    } else if (Math.abs(strength) > 550) {
         led.plotBrightness(x1, y1, 100)
         led.plotBrightness(x2, y2, 100)
-    } else if (Math.abs(0) > 350) {
+    } else if (Math.abs(strength) > 550) {
         led.plotBrightness(x1, y1, 50)
         led.plotBrightness(x2, y2, 50)
+    } else if (Math.abs(0) > 350) {
+        led.plotBrightness(x1, y1, 25)
+        led.plotBrightness(x2, y2, 25)
     } else {
         led.unplot(x1, y1)
         led.unplot(x2, y2)
     }
 }
 let throttle = 0
+let isRobot = false
 let isRemote = false
-radio.setFrequencyBand(24)
 radio.setGroup(34)
 radio.setTransmitSerialNumber(false)
 isRemote = false
-let isRobot = true
+isRobot = true
 throttle = 0
 basic.forever(function () {
     sendRadioSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
