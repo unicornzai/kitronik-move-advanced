@@ -23,6 +23,13 @@ function iconDown (strength: number) {
     iconDirection(strength, 2, 4, 2, 3)
     iconDirection(-1, 2, 0, 2, 1)
 }
+function moveRobot (throttle: number) {
+    if (throttle > 0) {
+        Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, throttle / 13)
+    } else {
+        Kitronik_Move_Motor.stop()
+    }
+}
 function iconLeft (strength: number) {
     iconDirection(strength, 0, 2, 1, 2)
     iconDirection(-1, 4, 2, 3, 2)
@@ -86,4 +93,5 @@ let isRobot = true
 throttle = 0
 basic.forever(function () {
     sendRadioSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
+    moveRobot(throttle)
 })
