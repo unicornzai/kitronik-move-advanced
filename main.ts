@@ -1,3 +1,6 @@
+function foreverRobot () {
+    moveRobot()
+}
 function foreverRemote () {
     calcRadioSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
     sendRadioSignal()
@@ -5,7 +8,7 @@ function foreverRemote () {
 }
 function showRemoteSignal () {
     if (isRemote) {
-        if (throttle < 0) {
+        if (throttle > 0) {
             iconUp(throttle)
             iconDown(0)
         } else {
@@ -22,38 +25,51 @@ function showRemoteSignal () {
     }
 }
 function sendRadioSignal () {
-    radio.sendValue("direction", direction)
-    radio.sendValue("throttle", throttle)
+    radio.sendValue("x", direction)
+    radio.sendValue("y", throttle)
 }
 function iconDown (strength: number) {
     iconDirection(strength, 2, 4, 2, 3, 1, 4, 3, 4)
 }
-function moveRobot (throttle: number) {
-    if (isRobot) {
-        if (throttle > 0) {
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, throttle / 13)
-            images.arrowImage(ArrowNames.North).showImage(0)
-        } else {
-            basic.showIcon(IconNames.No)
-            Kitronik_Move_Motor.stop()
+function moveRobot () {
+    if (throttle > 0) {
+        if (direction == 0) {
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, 200)
+        } else if (direction == 2) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Wide)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, 100)
+        } else if (direction == 3) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Standard)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, 100)
+        } else if (direction == 4) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Tight)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, 100)
+        } else if (direction == -2) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Wide)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, 100)
+        } else if (direction == -3) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Standard)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, 100)
+        } else if (direction == -4) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Tight)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, 100)
         }
+    } else if (throttle == -4) {
+        Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Reverse, 50)
+    } else {
+        Kitronik_Move_Motor.stop()
     }
 }
-function normaliseSignal (signal: number, limitUpper: boolean) {
-    if (Math.abs(signal) > 750) {
-        if (limitUpper) {
-            if (signal < 0) {
-                return 0
-            }
-        }
+function normaliseSignal (signal: number) {
+    if (Math.abs(signal) > 850) {
+        return 0
+    } else if (Math.abs(signal) > 650) {
         return (signal > 0) ? 4 : -4
-    } else if (Math.abs(signal) > 255) {
-        return (signal > 0) ? 4 : -4
-    } else if (Math.abs(signal) > 220) {
+    } else if (Math.abs(signal) > 400) {
         return (signal > 0) ? 3 : -3
-    } else if (Math.abs(signal) > 185) {
-        return (signal > 0) ? 2 : -2
     } else if (Math.abs(signal) > 150) {
+        return (signal > 0) ? 2 : -2
+    } else if (Math.abs(signal) > 140) {
         return (signal > 0) ? 1 : -1
     } else {
         return 0
@@ -61,10 +77,15 @@ function normaliseSignal (signal: number, limitUpper: boolean) {
 }
 function calcRadioSignal (x: number, y: number) {
     if (isRemote) {
-        direction = normaliseSignal(x, false)
-        throttle = normaliseSignal(y, true)
-        if (Math.abs(x) > 900 || Math.abs(y) > 900) {
+        direction = normaliseSignal(x)
+        if (input.buttonIsPressed(Button.AB)) {
+            throttle = -4
             direction = 0
+        } else if (input.buttonIsPressed(Button.A)) {
+            throttle = 4
+        } else if (input.buttonIsPressed(Button.B)) {
+            throttle = 0
+        } else {
             throttle = 0
         }
     }
@@ -76,8 +97,11 @@ function iconUp (strength: number) {
     iconDirection(strength, 2, 0, 2, 1, 1, 0, 3, 0)
 }
 radio.onReceivedValue(function (name, value) {
-    if (name == "throttle") {
+    if (name == "y") {
         throttle = value
+    }
+    if (name == "x") {
+        direction = value
     }
 })
 function iconRight (strength: number) {
@@ -86,18 +110,21 @@ function iconRight (strength: number) {
 input.onLogoEvent(TouchButtonEvent.Touched, function () {
     if (!(isRemote)) {
         isRobot = false
-        isRemote = true
-        led.plotBrightness(2, 2, 255)
-        led.plotBrightness(1, 1, 45)
-        led.plotBrightness(2, 1, 45)
-        led.plotBrightness(3, 1, 45)
-        led.plotBrightness(1, 2, 45)
-        led.plotBrightness(3, 2, 45)
-        led.plotBrightness(1, 3, 45)
-        led.plotBrightness(2, 3, 45)
-        led.plotBrightness(3, 3, 45)
-        basic.pause(1000)
         basic.clearScreen()
+        myImage = images.createImage(`
+            . . . . .
+            # . . . .
+            # . . . .
+            # . . . .
+            . . . . .
+            `)
+        myImage.scrollImage(1, 25)
+        myImage.scrollImage(1, 25)
+        myImage.scrollImage(1, 25)
+        myImage.scrollImage(1, 25)
+        myImage.scrollImage(1, 25)
+        basic.clearScreen()
+        isRemote = true
     }
 })
 function iconDirection (strength: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
@@ -128,6 +155,7 @@ function iconDirection (strength: number, x1: number, y1: number, x2: number, y2
         led.unplot(x4, y4)
     }
 }
+let myImage: Image = null
 let direction = 0
 let throttle = 0
 let isRobot = false
@@ -137,10 +165,11 @@ radio.setTransmitSerialNumber(false)
 isRemote = false
 isRobot = true
 throttle = 0
+direction = 0
 basic.forever(function () {
     if (isRemote) {
         foreverRemote()
     } else if (isRobot) {
-    	
+        foreverRobot()
     }
 })
