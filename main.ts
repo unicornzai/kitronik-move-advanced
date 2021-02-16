@@ -1,10 +1,41 @@
 function foreverRobot () {
-    moveRobot()
+    calcAcceleration()
+    calcSpeed()
+    moveRobotWithMomentum()
 }
 function foreverRemote () {
     calcRadioSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
     sendRadioSignal()
     showRemoteSignal()
+}
+function moveRobotWithMomentum () {
+    if (throttle == -4) {
+        Kitronik_Move_Motor.stop()
+    } else if (speed > minSpeed) {
+        if (direction == 0) {
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, speed)
+        } else if (direction == 2) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Wide)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, speed)
+        } else if (direction == 3) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Standard)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, speed)
+        } else if (direction == 4) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Tight)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, speed)
+        } else if (direction == -2) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Wide)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, speed)
+        } else if (direction == -3) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Standard)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, speed)
+        } else if (direction == -4) {
+            Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Tight)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, speed)
+        }
+    } else {
+        Kitronik_Move_Motor.stop()
+    }
 }
 function showRemoteSignal () {
     if (isRemote) {
@@ -24,6 +55,18 @@ function showRemoteSignal () {
         }
     }
 }
+function calcSpeed () {
+    tempSpeed = (speed + acceleration) * friction
+    if (tempSpeed < maxSpeed) {
+        if (-0.6 < tempSpeed && tempSpeed < 0.6) {
+            speed = minSpeed
+        } else {
+            speed = tempSpeed
+        }
+    } else {
+        speed = maxSpeed
+    }
+}
 function sendRadioSignal () {
     radio.sendValue("x", direction)
     radio.sendValue("y", throttle)
@@ -34,25 +77,25 @@ function iconDown (strength: number) {
 function moveRobot () {
     if (throttle > 0) {
         if (direction == 0) {
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, 200)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, speed)
         } else if (direction == 2) {
             Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Wide)
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, 100)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, speed)
         } else if (direction == 3) {
             Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Standard)
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, 100)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, speed)
         } else if (direction == 4) {
             Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Tight)
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, 100)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Right, speed)
         } else if (direction == -2) {
             Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Wide)
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, 100)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, speed)
         } else if (direction == -3) {
             Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Standard)
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, 100)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, speed)
         } else if (direction == -4) {
             Kitronik_Move_Motor.turnRadius(Kitronik_Move_Motor.TurnRadii.Tight)
-            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, 100)
+            Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Left, speed)
         }
     } else if (throttle == -4) {
         Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Reverse, 50)
@@ -61,9 +104,9 @@ function moveRobot () {
     }
 }
 function normaliseSignal (signal: number) {
-    if (Math.abs(signal) > 850) {
+    if (Math.abs(signal) > 1500) {
         return 0
-    } else if (Math.abs(signal) > 650) {
+    } else if (Math.abs(signal) > 1400) {
         return (signal > 0) ? 4 : -4
     } else if (Math.abs(signal) > 400) {
         return (signal > 0) ? 3 : -3
@@ -127,6 +170,25 @@ input.onLogoEvent(TouchButtonEvent.Touched, function () {
         isRemote = true
     }
 })
+function calcAcceleration () {
+    if (throttle > 0) {
+        if (acceleration <= 0) {
+            acceleration = 1.5
+        }
+        tempAcceleration = acceleration * 1.1
+        if (tempAcceleration < maxAcceleration) {
+            acceleration = tempAcceleration
+        } else {
+            acceleration = maxAcceleration
+        }
+    } else {
+        if (acceleration > 0.6) {
+            acceleration = acceleration * 0.85
+        } else {
+            acceleration = 0
+        }
+    }
+}
 function iconDirection (strength: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
     if (Math.abs(strength) == 4) {
         led.plotBrightness(x1, y1, 255)
@@ -156,6 +218,14 @@ function iconDirection (strength: number, x1: number, y1: number, x2: number, y2
     }
 }
 let myImage: Image = null
+let tempSpeed = 0
+let maxSpeed = 0
+let minSpeed = 0
+let speed = 0
+let friction = 0
+let tempAcceleration = 0
+let maxAcceleration = 0
+let acceleration = 0
 let direction = 0
 let throttle = 0
 let isRobot = false
@@ -166,6 +236,14 @@ isRemote = false
 isRobot = true
 throttle = 0
 direction = 0
+acceleration = 0
+maxAcceleration = 11
+tempAcceleration = 0
+friction = 0.9
+speed = 0
+minSpeed = 5
+maxSpeed = 100
+tempSpeed = 0
 basic.forever(function () {
     if (isRemote) {
         foreverRemote()
