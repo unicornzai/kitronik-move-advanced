@@ -1,58 +1,91 @@
-function showRemoteSignal (x: number, y: number) {
+function foreverRemote () {
+    calcRadioSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
+    sendRadioSignal()
+    showRemoteSignal()
+}
+function showRemoteSignal () {
     if (isRemote) {
-        if (y < 0) {
-            iconUp(y)
+        if (throttle < 0) {
+            iconUp(throttle)
+            iconDown(0)
         } else {
-            iconDown(y)
+            iconDown(throttle)
+            iconUp(0)
         }
-        if (x < 0) {
-            iconLeft(x)
+        if (direction < 0) {
+            iconLeft(direction)
+            iconRight(0)
         } else {
-            iconRight(x)
+            iconRight(direction)
+            iconLeft(0)
         }
     }
 }
-function sendRadioSignal (x: number, y: number) {
-    if (isRemote) {
-        radio.sendValue("accX", x)
-        radio.sendValue("accY", y)
-        showRemoteSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
-    }
+function sendRadioSignal () {
+    radio.sendValue("direction", direction)
+    radio.sendValue("throttle", throttle)
 }
 function iconDown (strength: number) {
-    iconDirection(strength, 2, 4, 2, 3)
-    iconDirection(-1, 2, 0, 2, 1)
+    iconDirection(strength, 2, 4, 2, 3, 1, 4, 3, 4)
 }
 function moveRobot (throttle: number) {
     if (isRobot) {
         if (throttle > 0) {
             Kitronik_Move_Motor.move(Kitronik_Move_Motor.DriveDirections.Forward, throttle / 13)
-            basic.showIcon(IconNames.Heart)
+            images.arrowImage(ArrowNames.North).showImage(0)
         } else {
             basic.showIcon(IconNames.No)
             Kitronik_Move_Motor.stop()
         }
     }
 }
+function normaliseSignal (signal: number, limitUpper: boolean) {
+    if (Math.abs(signal) > 750) {
+        if (limitUpper) {
+            if (signal < 0) {
+                return 0
+            }
+        }
+        return (signal > 0) ? 4 : -4
+    } else if (Math.abs(signal) > 255) {
+        return (signal > 0) ? 4 : -4
+    } else if (Math.abs(signal) > 220) {
+        return (signal > 0) ? 3 : -3
+    } else if (Math.abs(signal) > 185) {
+        return (signal > 0) ? 2 : -2
+    } else if (Math.abs(signal) > 150) {
+        return (signal > 0) ? 1 : -1
+    } else {
+        return 0
+    }
+}
+function calcRadioSignal (x: number, y: number) {
+    if (isRemote) {
+        direction = normaliseSignal(x, false)
+        throttle = normaliseSignal(y, true)
+        if (Math.abs(x) > 900 || Math.abs(y) > 900) {
+            direction = 0
+            throttle = 0
+        }
+    }
+}
 function iconLeft (strength: number) {
-    iconDirection(strength, 0, 2, 1, 2)
-    iconDirection(-1, 4, 2, 3, 2)
+    iconDirection(strength, 0, 2, 1, 2, 0, 1, 0, 3)
 }
 function iconUp (strength: number) {
-    iconDirection(strength, 2, 0, 2, 1)
-    iconDirection(-1, 2, 4, 2, 3)
+    iconDirection(strength, 2, 0, 2, 1, 1, 0, 3, 0)
 }
 radio.onReceivedValue(function (name, value) {
-    if (name == "accY") {
+    if (name == "throttle") {
         throttle = value
     }
 })
 function iconRight (strength: number) {
-    iconDirection(strength, 4, 2, 3, 2)
-    iconDirection(-1, 0, 2, 1, 2)
+    iconDirection(strength, 4, 2, 3, 2, 4, 1, 4, 3)
 }
 input.onLogoEvent(TouchButtonEvent.Touched, function () {
     if (!(isRemote)) {
+        isRobot = false
         isRemote = true
         led.plotBrightness(2, 2, 255)
         led.plotBrightness(1, 1, 45)
@@ -67,24 +100,35 @@ input.onLogoEvent(TouchButtonEvent.Touched, function () {
         basic.clearScreen()
     }
 })
-function iconDirection (strength: number, x1: number, y1: number, x2: number, y2: number) {
-    if (Math.abs(strength) > 950) {
+function iconDirection (strength: number, x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, x4: number, y4: number) {
+    if (Math.abs(strength) == 4) {
         led.plotBrightness(x1, y1, 255)
         led.plotBrightness(x2, y2, 255)
-    } else if (Math.abs(strength) > 750) {
-        led.plotBrightness(x1, y1, 100)
-        led.plotBrightness(x2, y2, 100)
-    } else if (Math.abs(strength) > 550) {
-        led.plotBrightness(x1, y1, 50)
-        led.plotBrightness(x2, y2, 50)
-    } else if (Math.abs(0) > 350) {
-        led.plotBrightness(x1, y1, 25)
-        led.plotBrightness(x2, y2, 25)
+        led.plotBrightness(x3, y3, 255)
+        led.plotBrightness(x4, y4, 255)
+    } else if (Math.abs(strength) == 3) {
+        led.plotBrightness(x1, y1, 255)
+        led.plotBrightness(x2, y2, 255)
+        led.plotBrightness(x3, y3, 10)
+        led.plotBrightness(x4, y4, 10)
+    } else if (Math.abs(strength) == 2) {
+        led.plotBrightness(x1, y1, 255)
+        led.plotBrightness(x2, y2, 255)
+        led.unplot(x3, y3)
+        led.unplot(x4, y4)
+    } else if (Math.abs(strength) == 1) {
+        led.plotBrightness(x1, y1, 10)
+        led.plotBrightness(x2, y2, 10)
+        led.unplot(x3, y3)
+        led.unplot(x4, y4)
     } else {
         led.unplot(x1, y1)
         led.unplot(x2, y2)
+        led.unplot(x3, y3)
+        led.unplot(x4, y4)
     }
 }
+let direction = 0
 let throttle = 0
 let isRobot = false
 let isRemote = false
@@ -94,6 +138,9 @@ isRemote = false
 isRobot = true
 throttle = 0
 basic.forever(function () {
-    sendRadioSignal(input.acceleration(Dimension.X), input.acceleration(Dimension.Y))
-    moveRobot(throttle)
+    if (isRemote) {
+        foreverRemote()
+    } else if (isRobot) {
+    	
+    }
 })

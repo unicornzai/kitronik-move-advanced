@@ -1,5 +1,5 @@
 {
-    "name": "remote-controller",
+    "name": "remote-controller (contains bug)",
     "description": "",
     "dependencies": {
         "core": "*",
